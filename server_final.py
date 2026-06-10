@@ -289,7 +289,7 @@ def stop():
     with lock: estado["corriendo"]=False; estado["ultimo_evento"]="⛔ Detenido"
     return jsonify({"ok":True,"msg":"⛔ Bot detenido"})
 
-@app.route("/api/start", methods=["POST"])
+@app.route("/api/start", methods=["POST", "GET"])
 def start():
     global bot_thread
     if not API_KEY or not API_SECRET:
@@ -306,6 +306,13 @@ def log():
     try:
         with open("ciclo_pro.log") as f: return jsonify({"lines":f.readlines()[-50:]})
     except: return jsonify({"lines":[]})
+
+# Auto-start bot on import (for gunicorn)
+if API_KEY and API_SECRET:
+    import atexit
+    _t = threading.Thread(target=bot_loop, daemon=True)
+    _t.start()
+    print("🚀 Bot auto-iniciado")
 
 if __name__=="__main__":
     print(f"API KEY: {'✅' if API_KEY else '❌'}")
