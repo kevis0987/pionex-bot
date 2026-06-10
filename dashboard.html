@@ -573,7 +573,7 @@ function conectar() {
 // ══════════════════════════════════════
 async function sendKeysToServer(key, secret) {
   try {
-    const r = await fetch(SERVER_URL+'/api/keys', {
+    const r = await fetch('/api/keys', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({key, secret}), signal:AbortSignal.timeout(4000)
     });
@@ -592,7 +592,7 @@ async function sendKeysToServer(key, secret) {
 
 async function sendConfigToServer(cfg) {
   try {
-    await fetch(SERVER_URL+'/api/config', {
+    await fetch('/api/config', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(cfg), signal:AbortSignal.timeout(4000)
     });
@@ -602,7 +602,7 @@ async function sendConfigToServer(cfg) {
 async function sendCmd(endpoint, msg) {
   const el = document.getElementById('ctrlMsg');
   try {
-    const r = await fetch(SERVER_URL+endpoint, {method:'POST', signal:AbortSignal.timeout(4000)});
+    const r = await fetch(endpoint, {method:'POST', signal:AbortSignal.timeout(4000)});
     const d = await r.json();
     el.textContent = d.msg || msg;
     el.style.color = 'var(--green)';
@@ -746,7 +746,7 @@ const demo = {
 
 async function fetchData() {
   try {
-    const r = await fetch(SERVER_URL+'/api/status',{signal:AbortSignal.timeout(4000)});
+    const r = await fetch('/api/status',{signal:AbortSignal.timeout(4000)});
     const d = await r.json();
     render(d);
     if (!connected) {
