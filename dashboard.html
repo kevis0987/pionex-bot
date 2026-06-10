@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Pionex Pro Bot</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+:root {
+  --bg:#050A0F; --surface:#0C1419; --surface2:#111E26;
+  --border:#1A2730; --green:#00E5A0; --red:#FF4560;
+  --yellow:#FFB84D; --blue:#3B9EFF; --muted:#4A6070;
+  --text:#E2EEF5; --sub:#7A9AAD;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;padding-bottom:80px;}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;
+  border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:20;}
+.logo{display:flex;align-items:center;gap:10px;}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 8px var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(1.4);}}
+.logo-name{font-weight:700;font-size:15px;}
+.logo-sub{font-size:10px;color:var(--sub);}
+.badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.5px;}
+.badge-prime{background:rgba(0,229,160,.15);color:var(--green);}
+.badge-normal{background:rgba(58,158,255,.15);color:var(--blue);}
+.badge-paused{background:rgba(255,184,77,.15);color:var(--yellow);}
+.clock{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--sub);}
+
+/* SECTIONS */
+.sec{padding:16px 18px;border-bottom:1px solid var(--border);}
+.sec-title{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;}
+
+/* HERO */
+.hero{padding:22px 18px 18px;border-bottom:1px solid var(--border);}
+.hero-lbl{font-size:10px;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+.hero-cap{font-family:'JetBrains Mono',monospace;font-size:36px;font-weight:600;letter-spacing:-1px;}
+.hero-cap span{font-size:16px;color:var(--sub);}
+.hero-row{display:flex;gap:16px;margin-top:12px;}
+.hstat{flex:1;}
+.hstat-lbl{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;}
+.hstat-val{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;margin-top:2px;}
+.pos{color:var(--green);} .neg{color:var(--red);} .neu{color:var(--text);}
+
+/* BOT CARD */
+.bot-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.bot-card.paused{border-color:var(--yellow);}
+.bot-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.bot-pair{font-size:18px;font-weight:700;}
+.dir-badge{font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;}
+.dir-long{background:rgba(0,229,160,.15);color:var(--green);}
+.dir-short{background:rgba(255,69,96,.15);color:var(--red);}
+.pnl-big{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:600;}
+.pnl-sub{font-size:12px;color:var(--sub);margin-top:2px;}
+.tp-wrap{margin-top:12px;}
+.tp-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--sub);margin-bottom:5px;}
+.tp-bg{background:var(--border);border-radius:4px;height:6px;overflow:hidden;}
+.tp-fill{height:100%;border-radius:4px;transition:width .5s ease;}
+.bot-meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;}
+.meta-item{background:var(--bg);border-radius:8px;padding:9px;}
+.meta-lbl{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;}
+.meta-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;margin-top:3px;}
+
+/* CONTROLS */
+.ctrl-row{display:flex;gap:8px;}
+.ctrl-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:13px 8px;border-radius:10px;border:none;cursor:pointer;
+  font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;
+  transition:opacity .2s,transform .1s;}
+.ctrl-btn:active{transform:scale(.95);opacity:.7;}
+.btn-pause {background:rgba(255,184,77,.15);color:var(--yellow);border:1px solid rgba(255,184,77,.3);}
+.btn-resume{background:rgba(0,229,160,.15); color:var(--green); border:1px solid rgba(0,229,160,.3);}
+.btn-stop  {background:rgba(255,69,96,.12); color:var(--red);   border:1px solid rgba(255,69,96,.3);}
+.btn-start {background:rgba(0,229,160,.2);  color:var(--green); border:1px solid rgba(0,229,160,.5);width:100%;margin-top:10px;}
+.ctrl-msg{font-size:12px;text-align:center;margin-top:8px;min-height:16px;color:var(--sub);}
+
+/* PARES */
+.pares-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.par-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative;overflow:hidden;}
+.par-card.best{border-color:var(--green);}
+.par-card.best::after{content:"MEJOR";position:absolute;top:6px;right:8px;font-size:8px;font-weight:700;color:var(--green);letter-spacing:1px;}
+.par-name{font-weight:700;font-size:14px;}
+.par-price{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--sub);margin-top:2px;}
+.score-row{display:flex;gap:5px;margin-top:8px;}
+.sc-l{flex:1;text-align:center;background:rgba(0,229,160,.1);color:var(--green);border-radius:5px;padding:3px;font-size:11px;font-weight:600;}
+.sc-s{flex:1;text-align:center;background:rgba(255,69,96,.1);color:var(--red);border-radius:5px;padding:3px;font-size:11px;font-weight:600;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
+.stat-num{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;}
+.stat-lbl{font-size:10px;color:var(--sub);margin-top:2px;}
+.racha-row{display:flex;gap:8px;margin-top:10px;}
+.racha-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;}
+.racha-lbl{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;}
+.racha-val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;margin-top:3px;}
+.hoy-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+.hoy-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;}
+.hoy-lbl{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;}
+.hoy-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;margin-top:3px;}
+
+/* LOG */
+.log-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:12px;font-family:'JetBrains Mono',monospace;font-size:11px;
+  color:var(--sub);line-height:1.9;max-height:220px;overflow-y:auto;}
+.ll-green{color:var(--green);} .ll-red{color:var(--red);}
+.ll-yellow{color:var(--yellow);} .ll-blue{color:var(--blue);}
+
+/* CONFIG */
+.cfg-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px;}
+.cfg-title{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.cfg-row{margin-bottom:10px;}
+.cfg-lbl{font-size:11px;color:var(--sub);margin-bottom:5px;}
+.cfg-inp{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:10px 13px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;}
+.cfg-inp:focus{border-color:var(--green);}
+.cfg-inp-pw{-webkit-text-security:disc;text-security:disc;}
+.cfg-inp[type=password]{letter-spacing:3px;}
+.cfg-btn{width:100%;padding:12px;background:var(--green);color:var(--bg);font-weight:700;
+  font-size:14px;border:none;border-radius:8px;cursor:pointer;font-family:'Space Grotesk',sans-serif;margin-top:4px;}
+.cfg-btn.danger{background:rgba(255,69,96,.2);color:var(--red);border:1px solid rgba(255,69,96,.3);}
+.cfg-saved{font-size:11px;color:var(--green);text-align:center;margin-top:6px;min-height:14px;}
+.cfg-select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:10px 13px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;outline:none;}
+.cfg-2col{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;
+  color:var(--sub);cursor:pointer;font-size:14px;}
+.inp-wrap{position:relative;}
+.api-status{display:flex;align-items:center;gap:8px;font-size:12px;margin-top:8px;}
+.api-ok{color:var(--green);} .api-err{color:var(--red);}
+
+/* EVENTO */
+.evento{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:11px 14px;font-size:12px;color:var(--sub);display:flex;align-items:center;gap:8px;}
+.evento-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0;
+  animation:pulse 2s infinite;}
+
+/* WAITING */
+.waiting{display:flex;flex-direction:column;align-items:center;gap:14px;padding:30px;text-align:center;}
+.spin{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--green);
+  border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);
+  border-top:1px solid var(--border);display:flex;padding:6px 0;}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;cursor:pointer;color:var(--muted);padding:6px 0;
+  font-family:'Space Grotesk',sans-serif;}
+.nb.active{color:var(--green);}
+.nb svg{width:20px;height:20px;}
+.nb span{font-size:10px;font-weight:500;}
+
+/* TABS */
+.tab{display:none;} .tab.active{display:block;}
+.refresh-row{display:flex;align-items:center;justify-content:space-between;padding:8px 18px;}
+.refresh-btn{background:rgba(0,229,160,.1);border:1px solid rgba(0,229,160,.3);
+  color:var(--green);border-radius:8px;padding:6px 14px;font-size:12px;
+  font-family:'Space Grotesk',sans-serif;cursor:pointer;}
+.last-upd{font-size:11px;color:var(--muted);}
+
+/* TOAST */
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);
+  background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:10px 20px;font-size:13px;font-weight:500;z-index:100;
+  opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="dot" id="statusDot" style="background:var(--yellow)"></div>
+    <div>
+      <div class="logo-name">PIONEX PRO</div>
+      <div class="logo-sub" id="connStatus">Sin conexión</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span class="badge badge-prime" id="modeBadge">—</span>
+    <span class="clock" id="clock">--:--</span>
+  </div>
+</header>
+
+<!-- ══════════ TAB: DASHBOARD ══════════ -->
+<div id="tabDashboard" class="tab active">
+  <div class="hero">
+    <div class="hero-lbl">Capital Total</div>
+    <div class="hero-cap">$<span id="capVal">—</span> <span>USDT</span></div>
+    <div class="hero-row">
+      <div class="hstat">
+        <div class="hstat-lbl">Ganancia Total</div>
+        <div class="hstat-val pos" id="ganTotal">+$0.00</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-lbl">Hoy</div>
+        <div class="hstat-val pos" id="ganDia">+$0.00</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-lbl">Ciclo</div>
+        <div class="hstat-val neu" id="cicloN">#1</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">Bot Activo</div>
+    <div class="bot-card" id="botCard">
+      <div class="waiting" id="botWait">
+        <div class="spin"></div>
+        <div style="font-size:13px;color:var(--sub)" id="botWaitMsg">Esperando datos...</div>
+      </div>
+      <div id="botActive" style="display:none">
+        <div class="bot-hdr">
+          <div class="bot-pair" id="botPair">—</div>
+          <div class="dir-badge dir-long" id="dirBadge">—</div>
+        </div>
+        <div class="pnl-big pos" id="pnlBig">+0.000%</div>
+        <div class="pnl-sub" id="pnlSub">+$0.0000 USDT</div>
+        <div class="tp-wrap">
+          <div class="tp-labels"><span>0%</span><span id="tpLbl">TP 0.5%</span></div>
+          <div class="tp-bg"><div class="tp-fill" id="tpFill" style="width:0%;background:var(--green)"></div></div>
+        </div>
+        <div class="bot-meta">
+          <div class="meta-item"><div class="meta-lbl">Rondas</div><div class="meta-val" id="mRondas">0</div></div>
+          <div class="meta-item"><div class="meta-lbl">Rango</div><div class="meta-val" id="mRango" style="font-size:10px">—</div></div>
+          <div class="meta-item"><div class="meta-lbl">Liq.</div><div class="meta-val neg" id="mLiq" style="font-size:11px">—</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLES -->
+  <div class="sec">
+    <div class="sec-title">Control</div>
+    <div class="ctrl-row">
+      <button class="ctrl-btn btn-pause"  id="btnPause"  onclick="pauseBot()">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+          <rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>
+        </svg>Pausar
+      </button>
+      <button class="ctrl-btn btn-resume" id="btnResume" onclick="resumeBot()" style="display:none">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5,3 19,12 5,21"/></svg>
+        Reanudar
+      </button>
+      <button class="ctrl-btn btn-stop" onclick="stopBot()">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+        Detener
+      </button>
+    </div>
+    <button class="ctrl-btn btn-start" id="btnStart" onclick="startBot()" style="display:none">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5,3 19,12 5,21"/></svg>
+      Iniciar Bot
+    </button>
+    <div class="ctrl-msg" id="ctrlMsg"></div>
+  </div>
+
+  <div class="sec" style="border:none;padding-top:0">
+    <div class="evento" id="eventoBox">
+      <div class="evento-dot"></div>
+      <div id="eventoTxt">Esperando...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TAB: PARES ══════════ -->
+<div id="tabPares" class="tab">
+  <div class="sec">
+    <div class="sec-title">Escaneo en Vivo</div>
+    <div class="pares-grid" id="paresGrid">
+      <div class="par-card"><div style="color:var(--sub);font-size:12px">Cargando...</div></div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">Precios</div>
+    <div id="preciosList"></div>
+  </div>
+</div>
+
+<!-- ══════════ TAB: STATS ══════════ -->
+<div id="tabStats" class="tab">
+  <div class="sec">
+    <div class="sec-title">Ciclos</div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-num pos" id="sGanados">0</div><div class="stat-lbl">✅ Ganados</div></div>
+      <div class="stat-card"><div class="stat-num neg" id="sPerdidos">0</div><div class="stat-lbl">❌ Perdidos</div></div>
+      <div class="stat-card"><div class="stat-num" id="sWR" style="color:var(--blue)">0%</div><div class="stat-lbl">Win Rate</div></div>
+    </div>
+    <div class="racha-row">
+      <div class="racha-card"><div class="racha-lbl">Racha Ganadora</div><div class="racha-val pos" id="rachaG">0</div></div>
+      <div class="racha-card"><div class="racha-lbl">Racha Perdedora</div><div class="racha-val neg" id="rachaP">0</div></div>
+    </div>
+    <div class="hoy-grid">
+      <div class="hoy-card"><div class="hoy-lbl">Ganancia Hoy</div><div class="hoy-val pos" id="hoyGan">$0.00</div></div>
+      <div class="hoy-card"><div class="hoy-lbl">Ciclos Hoy</div><div class="hoy-val" id="hoyCic">0</div></div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-title">Log de Actividad</div>
+    <div class="log-box" id="logBox"><div class="ll-blue">Sistema iniciado...</div></div>
+  </div>
+</div>
+
+<!-- ══════════ TAB: CONFIG ══════════ -->
+<div id="tabConfig" class="tab">
+
+  <!-- API KEYS -->
+  <div class="sec">
+    <div class="cfg-card">
+      <div class="cfg-title">🔑 API Keys Pionex</div>
+      <div class="cfg-row">
+        <div class="cfg-lbl">API Key</div>
+        <input class="cfg-inp" id="cfgApiKey" type="text" placeholder="Tu API Key de Pionex" autocomplete="off">
+      </div>
+      <div class="cfg-row">
+        <div class="cfg-lbl">API Secret</div>
+        <div class="inp-wrap">
+          <input class="cfg-inp" id="cfgApiSecret" type="password" placeholder="Tu API Secret" autocomplete="off">
+          <button class="eye-btn" onclick="toggleSecret()">👁</button>
+        </div>
+      </div>
+      <button class="cfg-btn" onclick="saveApiKeys()">💾 Guardar Keys</button>
+      <div class="cfg-saved" id="apiSaved"></div>
+      <div class="api-status" id="apiStatus"></div>
+    </div>
+
+    <!-- PARÁMETROS DEL BOT -->
+    <div class="cfg-card">
+      <div class="cfg-title">⚙️ Parámetros del Bot</div>
+      <div class="cfg-row">
+        <div class="cfg-lbl">Capital inicial (USDT)</div>
+        <input class="cfg-inp" id="cfgCapital" type="number" value="61" min="10">
+      </div>
+      <div class="cfg-2col">
+        <div class="cfg-row">
+          <div class="cfg-lbl">Take Profit %</div>
+          <input class="cfg-inp" id="cfgTP" type="number" value="0.5" step="0.1" min="0.1">
+        </div>
+        <div class="cfg-row">
+          <div class="cfg-lbl">Stop Loss %</div>
+          <input class="cfg-inp" id="cfgSL" type="number" value="1.5" step="0.1" min="0.1">
+        </div>
+      </div>
+      <div class="cfg-2col">
+        <div class="cfg-row">
+          <div class="cfg-lbl">Leverage</div>
+          <select class="cfg-select" id="cfgLev">
+            <option value="1">1x (Spot)</option>
+            <option value="2">2x</option>
+            <option value="3" selected>3x</option>
+            <option value="5">5x</option>
+            <option value="10">10x</option>
+          </select>
+        </div>
+        <div class="cfg-row">
+          <div class="cfg-lbl">Grids</div>
+          <input class="cfg-inp" id="cfgGrids" type="number" value="50" min="10" max="150">
+        </div>
+      </div>
+      <div class="cfg-row">
+        <div class="cfg-lbl">Pares a operar</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer">
+            <input type="checkbox" id="parETH" checked style="accent-color:var(--green)"> ETH/USDT
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer">
+            <input type="checkbox" id="parBTC" checked style="accent-color:var(--green)"> BTC/USDT
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer">
+            <input type="checkbox" id="parSOL" style="accent-color:var(--green)"> SOL/USDT
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer">
+            <input type="checkbox" id="parBNB" style="accent-color:var(--green)"> BNB/USDT
+          </label>
+        </div>
+      </div>
+      <button class="cfg-btn" onclick="saveConfig()" style="margin-top:8px">💾 Guardar Configuración</button>
+      <div class="cfg-saved" id="cfgSaved"></div>
+    </div>
+
+    <!-- CONEXIÓN SERVIDOR -->
+    <div class="cfg-card">
+      <div class="cfg-title">🌐 Servidor</div>
+      <div class="cfg-row">
+        <div class="cfg-lbl">URL del servidor</div>
+        <input class="cfg-inp" id="cfgServer" type="text" value="http://localhost:5000">
+      </div>
+      <button class="cfg-btn" onclick="conectar()">🔗 Conectar</button>
+      <div style="margin-top:12px;font-size:11px;color:var(--sub);text-align:center;line-height:1.7">
+        Desde celular usa la IP de tu PC<br>
+        <span style="color:var(--blue);font-family:monospace">http://192.168.1.X:5000</span>
+      </div>
+    </div>
+
+    <!-- RESET -->
+    <div class="cfg-card">
+      <div class="cfg-title">🗑 Datos</div>
+      <button class="cfg-btn danger" onclick="clearData()">Limpiar datos guardados</button>
+    </div>
+  </div>
+</div>
+
+<!-- REFRESH -->
+<div class="refresh-row">
+  <span class="last-upd" id="lastUpd">—</span>
+  <button class="refresh-btn" onclick="fetchData()">↻ Actualizar</button>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <button class="nb active" onclick="showTab('Dashboard',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+      <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+    </svg><span>Inicio</span>
+  </button>
+  <button class="nb" onclick="showTab('Pares',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
+    </svg><span>Pares</span>
+  </button>
+  <button class="nb" onclick="showTab('Stats',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+    </svg><span>Stats</span>
+  </button>
+  <button class="nb" onclick="showTab('Config',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg><span>Config</span>
+  </button>
+</nav>
+
+<script>
+// ══════════════════════════════════════
+//  ALMACENAMIENTO LOCAL
+// ══════════════════════════════════════
+const LS = {
+  get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set: (k,v) => localStorage.setItem(k, JSON.stringify(v)),
+  del: k => localStorage.removeItem(k)
+};
+
+// ══════════════════════════════════════
+//  ESTADO
+// ══════════════════════════════════════
+let SERVER_URL  = LS.get('serverUrl') || 'http://localhost:5000';
+let INTERVAL    = 5000;
+let timer       = null;
+let connected   = false;
+let botRunning  = false;
+let logs        = [];
+
+// ══════════════════════════════════════
+//  INIT — cargar config guardada
+// ══════════════════════════════════════
+function loadSaved() {
+  const keys = LS.get('apiKeys') || {};
+  if (keys.key)    document.getElementById('cfgApiKey').value    = keys.key;
+  if (keys.secret) document.getElementById('cfgApiSecret').value = keys.secret;
+  const cfg = LS.get('botConfig') || {};
+  if (cfg.capital) document.getElementById('cfgCapital').value = cfg.capital;
+  if (cfg.tp)      document.getElementById('cfgTP').value      = cfg.tp;
+  if (cfg.sl)      document.getElementById('cfgSL').value      = cfg.sl;
+  if (cfg.lev)     document.getElementById('cfgLev').value     = cfg.lev;
+  if (cfg.grids)   document.getElementById('cfgGrids').value   = cfg.grids;
+  if (cfg.pares) {
+    document.getElementById('parETH').checked = cfg.pares.includes('ETH_USDT');
+    document.getElementById('parBTC').checked = cfg.pares.includes('BTC_USDT');
+    document.getElementById('parSOL').checked = cfg.pares.includes('SOL_USDT');
+    document.getElementById('parBNB').checked = cfg.pares.includes('BNB_USDT');
+  }
+  document.getElementById('cfgServer').value = SERVER_URL;
+}
+
+// ══════════════════════════════════════
+//  RELOJ
+// ══════════════════════════════════════
+function tick() {
+  const t = new Date().toLocaleTimeString('es-CO',{timeZone:'America/Bogota',hour12:false,hour:'2-digit',minute:'2-digit'});
+  document.getElementById('clock').textContent = t;
+}
+setInterval(tick,1000); tick();
+
+// ══════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════
+function toast(msg, color='var(--green)') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.color = color;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ══════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════
+function showTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ══════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════
+function toggleSecret() {
+  const el = document.getElementById('cfgApiSecret');
+  el.type = el.type==='password' ? 'text' : 'password';
+}
+
+function saveApiKeys() {
+  const key    = document.getElementById('cfgApiKey').value.trim();
+  const secret = document.getElementById('cfgApiSecret').value.trim();
+  if (!key || !secret) { toast('⚠️ Ingresa ambas keys','var(--yellow)'); return; }
+  LS.set('apiKeys', {key, secret});
+  document.getElementById('apiSaved').textContent = '✅ Keys guardadas en este dispositivo';
+  toast('✅ API Keys guardadas');
+  sendKeysToServer(key, secret);
+}
+
+function saveConfig() {
+  const pares = [];
+  if (document.getElementById('parETH').checked) pares.push('ETH_USDT');
+  if (document.getElementById('parBTC').checked) pares.push('BTC_USDT');
+  if (document.getElementById('parSOL').checked) pares.push('SOL_USDT');
+  if (document.getElementById('parBNB').checked) pares.push('BNB_USDT');
+  if (!pares.length) { toast('⚠️ Selecciona al menos 1 par','var(--yellow)'); return; }
+  const cfg = {
+    capital: parseFloat(document.getElementById('cfgCapital').value),
+    tp:      parseFloat(document.getElementById('cfgTP').value),
+    sl:      parseFloat(document.getElementById('cfgSL').value),
+    lev:     parseInt(document.getElementById('cfgLev').value),
+    grids:   parseInt(document.getElementById('cfgGrids').value),
+    pares
+  };
+  LS.set('botConfig', cfg);
+  document.getElementById('cfgSaved').textContent = '✅ Configuración guardada';
+  toast('✅ Configuración guardada');
+  sendConfigToServer(cfg);
+}
+
+function clearData() {
+  if (!confirm('¿Borrar todos los datos guardados?')) return;
+  ['apiKeys','botConfig','serverUrl'].forEach(k=>LS.del(k));
+  toast('🗑 Datos eliminados','var(--yellow)');
+  location.reload();
+}
+
+function conectar() {
+  SERVER_URL = document.getElementById('cfgServer').value.trim();
+  LS.set('serverUrl', SERVER_URL);
+  if (timer) clearInterval(timer);
+  fetchData();
+  timer = setInterval(fetchData, INTERVAL);
+  toast('🔗 Conectando...');
+  showTab('Dashboard', document.querySelector('.nb'));
+}
+
+// ══════════════════════════════════════
+//  API AL SERVIDOR
+// ══════════════════════════════════════
+async function sendKeysToServer(key, secret) {
+  try {
+    const r = await fetch(SERVER_URL+'/api/keys', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({key, secret}), signal:AbortSignal.timeout(4000)
+    });
+    const d = await r.json();
+    const el = document.getElementById('apiStatus');
+    if (d.ok) {
+      el.innerHTML = '<span class="api-ok">✅ Keys enviadas al bot correctamente</span>';
+    } else {
+      el.innerHTML = '<span class="api-err">⚠️ '+d.msg+'</span>';
+    }
+  } catch {
+    document.getElementById('apiStatus').innerHTML =
+      '<span class="api-err">⚠️ Servidor no disponible — keys guardadas localmente</span>';
+  }
+}
+
+async function sendConfigToServer(cfg) {
+  try {
+    await fetch(SERVER_URL+'/api/config', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(cfg), signal:AbortSignal.timeout(4000)
+    });
+  } catch {}
+}
+
+async function sendCmd(endpoint, msg) {
+  const el = document.getElementById('ctrlMsg');
+  try {
+    const r = await fetch(SERVER_URL+endpoint, {method:'POST', signal:AbortSignal.timeout(4000)});
+    const d = await r.json();
+    el.textContent = d.msg || msg;
+    el.style.color = 'var(--green)';
+    toast(d.msg || msg);
+    addLog(msg, 'yellow');
+  } catch {
+    el.textContent = 'Sin conexión al servidor';
+    el.style.color = 'var(--red)';
+    toast('⚠️ Sin conexión','var(--red)');
+  }
+  setTimeout(()=>el.textContent='', 3000);
+}
+
+// ══════════════════════════════════════
+//  CONTROLES BOT
+// ══════════════════════════════════════
+function pauseBot()  { sendCmd('/api/pause','⏸ Bot pausado'); }
+function resumeBot() { sendCmd('/api/resume','▶️ Bot reanudado'); }
+function stopBot()   { if(confirm('¿Detener el bot?')) sendCmd('/api/stop','⛔ Bot detenido'); }
+function startBot()  { sendCmd('/api/start','🚀 Bot iniciado'); }
+
+// ══════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════
+function render(d) {
+  // Badge modo
+  const mb = document.getElementById('modeBadge');
+  mb.textContent = d.modo_horario || '—';
+  mb.className = 'badge ' + (d.pausado?'badge-paused':d.modo_horario?.includes('PRIME')?'badge-prime':'badge-normal');
+
+  // Hero
+  document.getElementById('capVal').textContent = (d.capital??0).toFixed(2);
+  const gt = d.ganancia_total??0;
+  const gd = d.resumen_dia?.ganancia??0;
+  document.getElementById('ganTotal').textContent = (gt>=0?'+':'')+'$'+gt.toFixed(4);
+  document.getElementById('ganTotal').className   = 'hstat-val '+(gt>=0?'pos':'neg');
+  document.getElementById('ganDia').textContent   = (gd>=0?'+':'')+'$'+gd.toFixed(4);
+  document.getElementById('cicloN').textContent   = '#'+(d.ciclo??1);
+
+  // Bot card
+  if (d.bot_direction && d.bot_symbol) {
+    document.getElementById('botWait').style.display   = 'none';
+    document.getElementById('botActive').style.display = 'block';
+    const par = d.bot_symbol.replace('_USDT','')+'/USDT';
+    document.getElementById('botPair').textContent = par;
+    const db = document.getElementById('dirBadge');
+    db.textContent = d.bot_direction==='LONG'?'📈 LARGO':'📉 CORTO';
+    db.className = 'dir-badge '+(d.bot_direction==='LONG'?'dir-long':'dir-short');
+    const pct = d.pnl_pct??0;
+    const usd = d.pnl_usdt??0;
+    document.getElementById('pnlBig').textContent = (pct>=0?'+':'')+pct.toFixed(3)+'%';
+    document.getElementById('pnlBig').className   = 'pnl-big '+(pct>=0?'pos':'neg');
+    document.getElementById('pnlSub').textContent = (usd>=0?'+':'')+'$'+usd.toFixed(4)+' USDT';
+    const tp = d.tp_activo??0.5;
+    document.getElementById('tpLbl').textContent      = 'TP '+tp+'%';
+    document.getElementById('tpFill').style.width     = Math.min(Math.max((pct/tp)*100,0),100)+'%';
+    document.getElementById('tpFill').style.background= pct<0?'var(--red)':'var(--green)';
+    document.getElementById('mRondas').textContent = d.rondas??0;
+  } else {
+    document.getElementById('botWait').style.display   = 'flex';
+    document.getElementById('botActive').style.display = 'none';
+    document.getElementById('botWaitMsg').textContent  =
+      d.pausado ? '⏸ Bot pausado' : '⏳ Buscando oportunidad...';
+  }
+
+  // Paused state
+  document.getElementById('botCard').classList.toggle('paused', !!d.pausado);
+  const running = d.corriendo!==false;
+  document.getElementById('btnPause').style.display  = (!d.pausado && running)?'flex':'none';
+  document.getElementById('btnResume').style.display = (d.pausado  && running)?'flex':'none';
+  document.getElementById('btnStart').style.display  = !running?'flex':'none';
+
+  // Evento
+  document.getElementById('eventoTxt').textContent = d.ultimo_evento||'...';
+
+  // Pares
+  if (d.scores && d.precios) {
+    const ps = Object.keys(d.scores);
+    const best = ps.reduce((a,b)=>(d.scores[a]||0)>(d.scores[b]||0)?a:b, ps[0]);
+    document.getElementById('paresGrid').innerHTML = ps.map(p=>{
+      const nm = p.replace('_USDT','');
+      const pr = d.precios[p]??0;
+      const sl = d.scores[p]??0;
+      return `<div class="par-card${p===best?' best':''}">
+        <div class="par-name">${nm}/USDT</div>
+        <div class="par-price">$${pr.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <div class="score-row"><div class="sc-l">L: ${sl}</div><div class="sc-s">S: ${100-sl}</div></div>
+      </div>`;
+    }).join('');
+    document.getElementById('preciosList').innerHTML = ps.map(p=>{
+      const nm = p.replace('_USDT','');
+      const pr = d.precios[p]??0;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;
+        background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px">
+        <span style="font-weight:600">${nm}/USDT</span>
+        <span style="font-family:monospace;color:var(--green)">
+          $${pr.toLocaleString('en-US',{minimumFractionDigits:2})}
+        </span></div>`;
+    }).join('');
+  }
+
+  // Stats
+  const g=d.ciclos_ganados??0, p2=d.ciclos_perdidos??0;
+  document.getElementById('sGanados').textContent = g;
+  document.getElementById('sPerdidos').textContent = p2;
+  document.getElementById('sWR').textContent = (g+p2>0?Math.round(g/(g+p2)*100):0)+'%';
+  document.getElementById('rachaG').textContent = d.racha_ganados??0;
+  document.getElementById('rachaP').textContent = d.racha_perdidos??0;
+  document.getElementById('hoyGan').textContent = '$'+(d.resumen_dia?.ganancia??0).toFixed(4);
+  document.getElementById('hoyCiclos').textContent = d.resumen_dia?.ciclos??0;
+
+  document.getElementById('lastUpd').textContent =
+    new Date().toLocaleTimeString('es-CO',{timeZone:'America/Bogota',hour12:false});
+}
+
+// ══════════════════════════════════════
+//  LOG
+// ══════════════════════════════════════
+function addLog(msg, tipo='blue') {
+  const t = new Date().toLocaleTimeString('es-CO',{timeZone:'America/Bogota',hour12:false});
+  logs.unshift({msg,tipo,t});
+  if(logs.length>60) logs.pop();
+  document.getElementById('logBox').innerHTML =
+    logs.map(l=>`<div class="ll-${l.tipo}">[${l.t}] ${l.msg}</div>`).join('');
+}
+
+// ══════════════════════════════════════
+//  FETCH
+// ══════════════════════════════════════
+const demo = {
+  capital:62.45, ganancia_total:1.45, ciclo:8,
+  ciclos_ganados:6, ciclos_perdidos:1, racha_ganados:3, racha_perdidos:0,
+  bot_direction:"LONG", bot_symbol:"ETH_USDT",
+  pnl_pct:0.31, pnl_usdt:0.192, tp_activo:0.75,
+  precios:{ETH_USDT:1649,BTC_USDT:61050,SOL_USDT:63,BNB_USDT:583},
+  scores:{ETH_USDT:72,BTC_USDT:58,SOL_USDT:45,BNB_USDT:61},
+  modo_horario:"PRIME ⭐", pausado:false, corriendo:true,
+  ultimo_evento:"LONG ETH abierto — Score L:72",
+  resumen_dia:{ganancia:0.82,ciclos:5}
+};
+
+async function fetchData() {
+  try {
+    const r = await fetch(SERVER_URL+'/api/status',{signal:AbortSignal.timeout(4000)});
+    const d = await r.json();
+    render(d);
+    if (!connected) {
+      connected = true;
+      document.getElementById('statusDot').style.cssText = 'background:var(--green);box-shadow:0 0 8px var(--green)';
+      document.getElementById('connStatus').textContent = 'Conectado ✅';
+      addLog('Conectado al servidor ✅','green');
+      // Auto-enviar keys si están guardadas
+      const keys = LS.get('apiKeys');
+      if (keys?.key) sendKeysToServer(keys.key, keys.secret);
+    }
+    if (d.ultimo_evento?.includes('PROFIT')) addLog('🎯 '+d.ultimo_evento,'green');
+    else if (d.ultimo_evento?.includes('LOSS')) addLog('🛑 '+d.ultimo_evento,'red');
+  } catch {
+    if (connected) {
+      connected = false;
+      document.getElementById('statusDot').style.cssText = 'background:var(--yellow)';
+      document.getElementById('connStatus').textContent = 'Sin conexión';
+      addLog('Sin conexión — modo demo','yellow');
+    }
+    demo.pnl_pct = Math.round((demo.pnl_pct+(Math.random()-.4)*.06)*1000)/1000;
+    demo.pnl_usdt = Math.round(demo.pnl_pct/100*demo.capital*10000)/10000;
+    render(demo);
+  }
+}
+
+// ══════════════════════════════════════
+//  INICIO
+// ══════════════════════════════════════
+loadSaved();
+fetchData();
+timer = setInterval(fetchData, INTERVAL);
+addLog('Dashboard iniciado','blue');
+</script>
+</body>
+</html>
