@@ -1,2 +1,1 @@
-web: gunicorn server:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120
-worker: python ciclo_pro.py
+web: gunicorn server2:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120
