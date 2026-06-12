@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETH Analizador</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0A0E14;color:#E2EEF5;font-family:-apple-system,sans-serif;padding:16px;max-width:500px;margin:0 auto}
+.titulo{font-size:13px;color:#7A9AAD;margin-bottom:4px}
+.precio{font-size:38px;font-weight:700;margin-bottom:20px}
+.btn{width:100%;padding:14px;background:#00E5A0;color:#0A0E14;font-weight:700;font-size:15px;border:none;border-radius:10px;cursor:pointer;margin-bottom:16px}
+.btn:active{opacity:.8}
+.btn2{width:100%;padding:12px;background:transparent;color:#7A9AAD;font-size:13px;border:1px solid #1A2730;border-radius:10px;cursor:pointer;margin-bottom:16px}
+.card{background:#111A22;border-radius:12px;padding:16px;margin-bottom:12px}
+.clbl{font-size:10px;color:#7A9AAD;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.niv{background:#0A0E14;border-radius:8px;padding:10px}
+.nlbl{font-size:10px;color:#7A9AAD;margin-bottom:3px}
+.nval{font-size:15px;font-weight:600}
+.green{color:#00E5A0}.red{color:#FF4560}.yellow{color:#FFB84D}.blue{color:#3B9EFF}
+.señal-compra{border:1px solid #00E5A0;background:#0D1F18}
+.señal-venta{border:1px solid #FF4560;background:#1F0D0D}
+.señal-espera{border:1px solid #1A2730}
+.señal-tit{font-size:20px;font-weight:700;margin-bottom:14px}
+.ind-row{display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid #1A2730}
+.ind-row:last-child{border-bottom:none}
+.il{color:#7A9AAD}
+.bar-bg{background:#1A2730;border-radius:3px;height:5px;flex:1}
+.bar-fill{height:100%;border-radius:3px;transition:width .4s}
+.score-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.score-lbl{font-size:12px;color:#7A9AAD;width:60px}
+.score-num{font-size:13px;font-weight:600;width:40px;text-align:right}
+.hist-row{display:flex;justify-content:space-between;font-size:12px;color:#7A9AAD;padding:5px 0;border-bottom:1px solid #1A2730}
+.hist-row:last-child{border-bottom:none}
+.upd{text-align:center;font-size:11px;color:#4A6070;margin-top:8px}
+.loading{text-align:center;color:#7A9AAD;padding:24px;font-size:14px}
+.err{color:#FF4560;font-size:13px;line-height:1.6}
+.proxy-note{font-size:11px;color:#4A6070;text-align:center;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<div class="titulo">ETH / USDT — Analizador</div>
+<div class="precio" id="pval">$—</div>
+
+<button class="btn" onclick="analizar()">Analizar Mercado</button>
+
+<div id="res"></div>
+<div class="upd" id="upd"></div>
+
+<script>
+let hist=[];
+
+// Usar proxy CORS para evitar bloqueo
+const PROXIES = [
+  'https://corsproxy.io/?',
+  'https://api.allorigins.win/raw?url=',
+  'https://cors-anywhere.herokuapp.com/'
+];
+const BASE = 'https://api.pionex.com';
+
+async function fetchProxy(url) {
+  for (const proxy of PROXIES) {
+    try {
+      const r = await fetch(proxy + encodeURIComponent(url), {signal: AbortSignal.timeout(8000)});
+      if (r.ok) {
+        const t = await r.text();
+        return JSON.parse(t);
+      }
+    } catch(e) { continue; }
+  }
+  throw new Error('No se pudo conectar. Verifica tu internet.');
+}
+
+async function getCandles(interval, limit) {
+  const d = await fetchProxy(`${BASE}/api/v1/market/klines?symbol=ETH_USDT&interval=${interval}&limit=${limit}`);
+  return d.data?.klines || [];
+}
+
+async function getPrice() {
+  const d = await fetchProxy(`${BASE}/api/v1/market/tickers`);
+  for (const t of d.data?.tickers||[]) {
+    if (t.symbol==='ETH_USDT') return parseFloat(t.close);
+  }
+  return null;
+}
+
+function ema(p,n){const k=2/(n+1);let e=p[0];for(const x of p)e=x*k+e*(1-k);return e}
+function rsi(p,n=14){let g=[],l=[];for(let i=1;i<p.length;i++){const d=p[i]-p[i-1];g.push(Math.max(d,0));l.push(Math.max(-d,0))}const ag=g.slice(-n).reduce((a,b)=>a+b,0)/n,al=l.slice(-n).reduce((a,b)=>a+b,0)/n;return al===0?100:+(100-(100/(1+ag/al))).toFixed(1)}
+function macd(p){return ema(p,12)-ema(p,26)}
+
+async function analizar() {
+  document.getElementById('res').innerHTML = '<div class="loading">Conectando a Pionex...</div>';
+
+  try {
+    const [price, c1h, c15m, c5m] = await Promise.all([
+      getPrice(),
+      getCandles('60M',80),
+      getCandles('15M',80),
+      getCandles('5M',40)
+    ]);
+
+    if (!price||!c1h.length) throw new Error('Sin datos de Pionex');
+
+    document.getElementById('pval').textContent = '$'+price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+    const cl1h=c1h.map(c=>+c.close), cl15m=c15m.map(c=>+c.close), cl5m=c5m.map(c=>+c.close);
+    const e9=ema(cl1h,9),e21=ema(cl1h,21),e55=ema(cl1h,55);
+    const r1h=rsi(cl1h),r15m=rsi(cl15m),r5m=rsi(cl5m);
+    const m1h=macd(cl1h),m15m=macd(cl15m);
+    const e9_15=ema(cl15m,9),e21_15=ema(cl15m,21);
+    const e9_5=ema(cl5m,9),e21_5=ema(cl5m,21);
+    const atr=c15m.slice(-14).reduce((s,c)=>s+(+c.high-+c.low),0)/14;
+    const vol=+((atr/price)*100).toFixed(3);
+
+    let SL=0,SS=0;
+    if(e9>e21&&e21>e55)SL+=25;else if(e9<e21&&e21<e55)SS+=25;else if(e9>e21)SL+=12;else SS+=12;
+    if(m1h>0)SL+=10;else SS+=10;
+    if(r1h>=45&&r1h<=65)SL+=10;else if(r1h<30)SL+=12;else if(r1h>70)SS+=12;
+    if(e9_15>e21_15)SL+=15;else SS+=15;
+    if(m15m>0)SL+=8;else SS+=8;
+    if(e9_5>e21_5&&r5m<65)SL+=10;else if(e9_5<e21_5&&r5m>35)SS+=10;
+    if(vol>=0.3){SL+=5;SS+=5;}
+
+    const upper=(price*1.10).toFixed(2), lower=(price*0.90).toFixed(2);
+    let html='';
+
+    // Scores
+    html+=`<div class="card"><div class="clbl">Señal del mercado</div>
+      <div class="score-row"><span class="score-lbl">COMPRA</span><span class="score-num green">${SL}</span><div class="bar-bg"><div class="bar-fill" style="width:${SL}%;background:#00E5A0"></div></div></div>
+      <div class="score-row"><span class="score-lbl">VENTA</span><span class="score-num red">${SS}</span><div class="bar-bg"><div class="bar-fill" style="width:${SS}%;background:#FF4560"></div></div></div>
+    </div>`;
+
+    // Señal
+    if(SL>=55&&SL>SS){
+      const tp=(price*1.05).toFixed(2),sl_=(price*0.97).toFixed(2);
+      html+=`<div class="card señal-compra"><div class="señal-tit green">LARGO — COMPRA</div>
+        <div class="grid2">
+          <div class="niv"><div class="nlbl">Entrada</div><div class="nval">$${price.toFixed(2)}</div></div>
+          <div class="niv"><div class="nlbl">Confianza</div><div class="nval green">${SL}/100</div></div>
+          <div class="niv"><div class="nlbl">Precio superior</div><div class="nval green">$${upper}</div></div>
+          <div class="niv"><div class="nlbl">Precio inferior</div><div class="nval red">$${lower}</div></div>
+          <div class="niv"><div class="nlbl">Take Profit (+5%)</div><div class="nval green">$${tp}</div></div>
+          <div class="niv"><div class="nlbl">Stop Loss (-3%)</div><div class="nval red">$${sl_}</div></div>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:#7A9AAD">Grids: 50 | Leverage: 3x</div>
+      </div>`;
+    } else if(SS>=55&&SS>SL){
+      const tp=(price*0.95).toFixed(2),sl_=(price*1.03).toFixed(2);
+      html+=`<div class="card señal-venta"><div class="señal-tit red">CORTO — VENTA</div>
+        <div class="grid2">
+          <div class="niv"><div class="nlbl">Entrada</div><div class="nval">$${price.toFixed(2)}</div></div>
+          <div class="niv"><div class="nlbl">Confianza</div><div class="nval red">${SS}/100</div></div>
+          <div class="niv"><div class="nlbl">Precio superior</div><div class="nval red">$${upper}</div></div>
+          <div class="niv"><div class="nlbl">Precio inferior</div><div class="nval green">$${lower}</div></div>
+          <div class="niv"><div class="nlbl">Take Profit (-5%)</div><div class="nval green">$${tp}</div></div>
+          <div class="niv"><div class="nlbl">Stop Loss (+3%)</div><div class="nval red">$${sl_}</div></div>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:#7A9AAD">Grids: 50 | Leverage: 3x</div>
+      </div>`;
+    } else {
+      html+=`<div class="card señal-espera"><div class="señal-tit yellow">ESPERAR</div>
+        <div style="font-size:13px;color:#7A9AAD;line-height:1.7">
+          Condiciones no optimas aun.<br>
+          Compra: ${SL}/100 | Venta: ${SS}/100<br>
+          Minimo: 55/100 — vuelve en 15-30 min.
+        </div>
+      </div>`;
+    }
+
+    // Indicadores
+    const t1h=e9>e21&&e21>e55?'ALCISTA':e9<e21&&e21<e55?'BAJISTA':'LATERAL';
+    html+=`<div class="card"><div class="clbl">Indicadores</div>
+      <div class="ind-row"><span class="il">Tendencia 1H</span><span class="${t1h==='ALCISTA'?'green':t1h==='BAJISTA'?'red':'yellow'}">${t1h}</span></div>
+      <div class="ind-row"><span class="il">Tendencia 15M</span><span class="${e9_15>e21_15?'green':'red'}">${e9_15>e21_15?'ALCISTA':'BAJISTA'}</span></div>
+      <div class="ind-row"><span class="il">RSI 1H</span><span class="${r1h>70?'red':r1h<30?'blue':'green'}">${r1h} ${r1h>70?'sobrecomprado':r1h<30?'sobrevendido':''}</span></div>
+      <div class="ind-row"><span class="il">RSI 15M</span><span class="${r15m>70?'red':r15m<30?'blue':'green'}">${r15m}</span></div>
+      <div class="ind-row"><span class="il">MACD 1H</span><span class="${m1h>0?'green':'red'}">${m1h>0?'Positivo':'Negativo'}</span></div>
+      <div class="ind-row"><span class="il">Volatilidad</span><span class="${vol>0.3?'green':'yellow'}">${vol}%</span></div>
+    </div>`;
+
+    // Historial
+    const hora=new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+    const st=SL>=55&&SL>SS?'COMPRA':SS>=55&&SS>SL?'VENTA':'ESPERAR';
+    hist.unshift({hora,st,SL,SS,p:price.toFixed(0)});
+    if(hist.length>6)hist.pop();
+    if(hist.length>1){
+      html+=`<div class="card"><div class="clbl">Historial</div>`;
+      html+=hist.map(h=>`<div class="hist-row"><span>${h.hora}</span><span>$${h.p}</span><span class="${h.st==='COMPRA'?'green':h.st==='VENTA'?'red':'yellow'}">${h.st}</span><span>L:${h.SL} S:${h.SS}</span></div>`).join('');
+      html+='</div>';
+    }
+
+    document.getElementById('res').innerHTML=html;
+    document.getElementById('upd').textContent='Actualizado: '+hora;
+
+  } catch(e) {
+    document.getElementById('res').innerHTML=`<div class="card"><div class="clbl">Error</div><div class="err">${e.message}<br><br>Posibles causas:<br>- Sin conexion a internet<br>- Pionex no disponible<br><br>Intenta de nuevo en unos segundos.</div></div>`;
+  }
+}
+
+analizar();
+</script>
+</body>
+</html>
